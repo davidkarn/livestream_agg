@@ -1,5 +1,3 @@
-import NativeLink from 'native_link'
-
 export const LOAD_STREAMS            = 'LOAD_STREAMS'
 
 export function receive_search(query, location, streams) {

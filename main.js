@@ -9,6 +9,7 @@ var express         = require('express'),
     querystring     = require('querystring')
 var bodyParser           = require('body-parser')
 var session              = require('express-session')
+var cookieParser         = require('cookie-parser')
 var cookieSession        = require('cookie-session') 
 var bcrypt               = require('bcrypt')
 var fs                   = require('fs')
@@ -23,8 +24,6 @@ app.use(cookieParser())
 app.use(bodyParser({ uploadDir: '/tmp' }))
 app.use(session({ secret:               'adsfj203092r0hagh08Hu9#%RT',
                   cookie:               { maxAge: + 1000 * 60 * 60 * 24 * 14}}));
-app.use(passport.initialize())
-app.use(passport.session())
 
 var client = new Twitter({
   consumer_key: 'o4PvV5Pj4po3DIZjab49AAsI8',
