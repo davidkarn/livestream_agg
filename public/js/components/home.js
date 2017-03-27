@@ -18,19 +18,62 @@ class Home extends Component {
         super(...args)
         var me = this }
 
+    update_search(e) {
+	var query = this.refs.search.value
+	this.props.act.load_streams(query) }
+
     header() {
-	return __('div', {id: 'header'},
-		  'header here')}
-    
+	return __(
+	    'nav', {id:        'header',
+		    className: 'nav'},
+	    __('div', {className: 'nav-left'},
+	       __('a', {className: 'nav-item'},
+		  "LiveAgg")),
+	    __('div', {className: 'nav-center'},
+	       __('div', {className: 'nav-item'},
+		  __('div', {className: 'field'},
+		     __('p', {},
+			__('input', {type:          "text",
+				     className:     "input ",
+				     ref:            ref_for(this, "search"),
+				     onChange:       this.update_search.bind(this),
+				     placeholder:   "Search terms"}))))),
+	    __('div', {className: 'nav-right'},
+	       __('div', {className: 'nav-item'},
+		  __('div', {}, 'test'))))}
+
+    streams() {
+	return this.props.streams.streams.periscopes.slice(0, 4) }
+
+    render_stream(stream) {
+	return __(
+	    'div', {className: 'tile is-4'},
+	    __('div', {className: 'card'},
+	    __('div', {className: 'header'},
+	       __('a', {href: 'https://periscope.tv/' + stream.username},
+		  "@", stream.username)),
+	    __('div', {className: 'card-content'},
+	       __('div', {className: 'content'},
+		  __('div', {dangerouslySetInnerHTML: {__html: stream.oembed.html}}))),
+	    __('footer', {className: 'card-footer'},
+	       __('div', {className: 'card-footer-item'},
+		  stream.locationDescription || ""),
+	       __('div', {className: 'card-footer-item'},
+		  stream.state || ""))))}
+
     body() {
 	return __('div', {id: 'body'},
-		  'body here')}	
+		  __('div', {className: 'container'},
+		     __('div', {className: 'tile is-ancestor'},
+			this.streams().map(this.render_stream.bind(this)))))}
     
     footer() {
 	return __('div', {id: 'body'},
 		  'footer here')}	
 	    
     render() {
+	setTimeout(() => twttr.widgets.load(),
+		   500)
         return __(
 	    'div', {id: 'wrapper'},
 	    this.header(),

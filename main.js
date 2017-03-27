@@ -12,6 +12,7 @@ var session              = require('express-session')
 var cookieParser         = require('cookie-parser')
 var cookieSession        = require('cookie-session') 
 var bcrypt               = require('bcrypt')
+var async                = require('async')
 var fs                   = require('fs')
 var md5                  = require('md5')
 
@@ -32,7 +33,7 @@ var client = new Twitter({
   access_token_secret: 'ajbbl9tsYbpcHcj9rY5v6mSHwzwNIFoVenanSDz1G1Isb'
 });
 
-function search_twitter(term) {
+function search_twitter(term, next) {
     client.get('search/tweets', {q: term + ' filter:periscope'}, function(error, tweets, response) {
 	console.log('got tweets', {tweets})
 	for (var i in tweets) console.log(tweets[i])
@@ -53,12 +54,35 @@ function search_periscope(term, next) {
         next(values(body.BroadcastCache.broadcasts).map((x) => x.broadcast))
     });}
 
+function get_oembed(tweet_id, username, next) {
+    request('https://publish.twitter.com/oembed?url=https://twitter.com/'
+	    + username + '/status/' + tweet_id, function (error, response, body) {
+		try {
+		    body = JSON.parse(body) }
+		catch (e) {
+		    body = false }
+		next(body) })}
 
 app.get('/api/search', function(req, res){
-    var term     = req.query.term
+    var term     = req.query.query
     search_periscope(term, (periscopes) => {
-        search_twitter(term, (tweets) => {
-            res.json({tweets, periscopes}) })})})
+	periscopes = periscopes
+	    .filter((x) => x.data && x.data.tweet_id)
+	    .slice(0, 50)
+	async.map(periscopes,
+		  (item, done) => {
+		      if (item.data && item.data.tweet_id)
+			  get_oembed(item.data.tweet_id,
+				     item.data.twitter_username,
+				     (oembed) => {
+					 item.oembed = oembed
+					 done(item)})
+		      else {
+			  done(item) }},
+		  (err, results) => {
+		      console.log({err, res: results[0]})
+		      search_twitter(term, (tweets) => {
+			  res.json({tweets, periscopes}) })})})})
 
 app.use(express.static(process.cwd() + '/public/', { setHeaders: function (res, path) {
     if (path.match('assets'))
