@@ -47,8 +47,8 @@ class Home extends Component {
 
     render_stream(stream) {
 	return __(
-	    'div', {className: 'tile is-4'},
-	    __('div', {className: 'card'},
+	    'div', {className: 'tile is-parent is-4'},
+	    __('div', {className: 'tile is-child is-vertical card'},
 	    __('div', {className: 'header'},
 	       __('a', {href: 'https://periscope.tv/' + stream.username},
 		  "@", stream.username)),
@@ -63,9 +63,22 @@ class Home extends Component {
 
     body() {
 	return __('div', {id: 'body'},
-		  __('div', {className: 'container'},
-		     __('div', {className: 'tile is-ancestor'},
-			this.streams().map(this.render_stream.bind(this)))))}
+		  __('section', {className: 'section'},
+		     __('div', {className: 'container'},
+			__('div', {className: ''},
+			   this.render_streams(this.streams())))))}
+    
+    render_streams(streams) {
+	var rendered = []
+	var full     = []
+	for (var i in streams) {
+	    var stream = streams[i]
+	    rendered.push(this.render_stream(stream))
+	    if ((i + 1) % 3 == 0 ) {
+		full.push(__('div', {className: "tile is-ancestor"}, rendered))
+		rendered = [] }}
+	full.push(__('div', {}, rendered))
+	return full }
     
     footer() {
 	return __('div', {id: 'body'},
