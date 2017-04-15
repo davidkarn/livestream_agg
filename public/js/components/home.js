@@ -75,7 +75,7 @@ class Home extends Component {
 		    className: 'nav'},
 	    __('div', {className: 'nav-left'},
 	       __('a', {className: 'nav-item'},
-		  "LiveAgg")),
+		  "hiveStream")),
 	    __('div', {className: 'nav-center'},
 	       __('div', {className: 'nav-item'},
 		  __('div', {className: 'field'},
@@ -103,7 +103,7 @@ class Home extends Component {
 			
 	    __('div', {className: 'nav-right'},
 	       __('div', {className: 'nav-item'},
-		  __('div', {}, 'test'))))}
+		  __('div', {dangerouslySetInnerHTML: {__html: "&nbsp;"}}, ''))))}
 
     streams() {
 	var streams = ((this.props.streams
@@ -147,7 +147,7 @@ class Home extends Component {
 			__('div', {className: 'tweet-inner-wrapper',
 				   dangerouslySetInnerHTML: {__html: stream.oembed && (stream.oembed.html || "")}})))),
 	       img && img,
-	       __('footer', {className: 'card-footer'},
+	       false && __('footer', {className: 'card-footer'},
 		  __('div', {className: 'card-footer-item'},
 		     stream.locationDescription || ""),
 		  __('div', {className: 'card-footer-item'},
@@ -171,12 +171,14 @@ class Home extends Component {
 	    if (j % 4 == 0) {
 		full.push(__('div', {className: "tile is-ancestor"}, rendered))
 		rendered = [] }}
-	full.push(__('div', {}, rendered))
+	full.push(__('div',  {className: "tile is-ancestor"}, rendered))
 	return full }
     
     footer() {
 	return __('div', {id: 'body'},
-		  'footer here')}	
+		  __('a', {href: 'https://github.com/davidkarn/livestream_agg'},
+		     ' https://github.com/davidkarn/livestream_agg'),
+		  '')}	
 	    
     render() {
 	setTimeout(() => twttr.widgets.load(),
