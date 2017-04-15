@@ -40,7 +40,7 @@ function hours(hrs) {
 
 function memoize(key, fn, next, ttl) {
     console.log('key', key)
-    redisCache.wrap(key, fn, {ttl: ttl || hours(1)}, next) }
+    redisCache.wrap(key, fn, {ttl: minutes(3) || ttl || hours(1)}, next) }
 
 function mkey() {
     var id = ''

@@ -63,6 +63,13 @@ class Home extends Component {
 	var query = this.refs.search.value
 	this.props.act.load_streams(query, undefined, this.refs.only_live.value) }
 
+    perform_serach(term) {
+	this.refs.search.value = term
+	this.update_search() }
+
+    componentDidMount() {
+	if (query_parameter('term'))
+	    this.perform_serach(query_parameter('term')) }
 
     update_columns(e) {
 	var val = Number.parseInt(this.refs.columns.value)
