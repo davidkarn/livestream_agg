@@ -202,8 +202,8 @@ function process_streams(tweets, periscopes) {
 
 app.use(express.static(process.cwd() + '/public/', { setHeaders: function (res, path) {
     if (path.match('assets'))
-        res.setHeader('Cache-Control', 'public, max-age=1296000')
+        res.setHeader('Cache-Control', 'public, max-age=0')
     else
-        res.setHeader('Cache-Control', process.env.NODE_ENV == 'production' ? 'public, max-age=7200' : '')}}))
+        res.setHeader('Cache-Control', process.env.NODE_ENV == 'production' ? 'public, max-age=00' : '')}}))
 
 server.listen(port);

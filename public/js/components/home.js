@@ -43,6 +43,12 @@ class Home extends Component {
 	var query = this.refs.search.value
 	this.props.act.load_streams(query) }
 
+
+    update_columns(e) {
+	var val = Number.parseInt(this.refs.columns.value)
+	console.log('new val', val, this.refs.columns.value, this.refs.columns)
+	this.setState({columns_count: val}) }
+
     header() {
 	return __(
 	    'nav', {id:        'header',
@@ -58,7 +64,23 @@ class Home extends Component {
 				     className:     "input ",
 				     ref:            ref_for(this, "search"),
 				     onChange:       this.update_search.bind(this),
-				     placeholder:   "Search terms"}))))),
+				     placeholder:   "Search terms"}),
+			false && __('select', {className:     "select input ",
+				      ref:            ref_for(this, "columns"),
+				      onChange:       this.update_columns.bind(this),
+				     },
+			   __('option', {value: 3}, "Columns #"),
+			   __('option', {value: 1}, "1"),
+			   __('option', {value: 2}, "2"),
+			   __('option', {value: 3}, "3"),
+			   __('option', {value: 4}, "4"),
+			   __('option', {value: 5}, "5"),
+			   __('option', {value: 6}, "6"),
+			   __('option', {value: 7}, "7"),
+			   __('option', {value: 8}, "8"),
+			   __('option', {value: 9}, "9"), 
+			  ))))),
+			
 	    __('div', {className: 'nav-right'},
 	       __('div', {className: 'nav-item'},
 		  __('div', {}, 'test'))))}
@@ -93,14 +115,16 @@ class Home extends Component {
 			     width: '150px',
 			     height: '150px'}) }
 	return __(
-	    'div', {className: 'tile is-parent is-4'},
+	    'div', {className: 'tile is-parent is-3'},
 	    __('div', {className: 'tile is-child is-vertical card'},
 	       __('div', {className: 'header'},
 		  __('a', {href: 'https://periscope.tv/' + stream.username},
 		     "@", stream.username)),
 	       __('div', {className: 'card-content'},
 		  __('div', {className: 'content'},
-		     __('div', {dangerouslySetInnerHTML: {__html: stream.oembed && (stream.oembed.html || "")}}))),
+		     __('div', {className: 'tweet-wrapper'},
+			__('div', {className: 'tweet-inner-wrapper',
+				   dangerouslySetInnerHTML: {__html: stream.oembed && (stream.oembed.html || "")}})))),
 	       img && img,
 	       __('footer', {className: 'card-footer'},
 		  __('div', {className: 'card-footer-item'},
@@ -121,7 +145,9 @@ class Home extends Component {
 	for (var i in streams) {
 	    var stream = streams[i]
 	    rendered.push(this.render_stream(stream))
-	    if ((i + 1) % 3 == 0) {
+	    var j = Number.parseInt(i) + 1
+	    console.log(i, j, j % 4, i % 4)
+	    if (j % 4 == 0) {
 		full.push(__('div', {className: "tile is-ancestor"}, rendered))
 		rendered = [] }}
 	full.push(__('div', {}, rendered))

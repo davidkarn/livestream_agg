@@ -1,0 +1,27 @@
+
+#twitter-widget-0 > div > blockquote > div.Tweet-header.u-cf {
+    color:green!important;
+    display: none!important; }
+.EmbeddedTweet-tweet * {display: none; }
+.EmbeddedTweet-tweet .Tweet-card,
+.EmbeddedTweet-tweet .Tweet-card {
+    display: block; }
+.card-content {
+    padding: 0!important;}
+
+.tile.is-3 {
+    width: 350px; }
+
+.tweet-wrapper {
+    display: block;
+    position: relative;
+        overflow: hidden;
+    position: relative;
+    height: 415px; }
+
+.tweet-wrapper > div.tweet-inner-wrapper {
+    position: absolute;
+    width: 358px;
+    top: -100px;
+    left: -18px;
+}
