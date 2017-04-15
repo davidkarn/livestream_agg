@@ -4,9 +4,30 @@ import InfernoRedux       from 'inferno-redux'
 import config             from 'config'
 import Component          from 'inferno-component'
 
+function get_static_img(lat, lon) {
+    var coords     = lon.toString() + ',' + lat.toString()
+    return "https://maps.googleapis.com/maps/api/staticmap?center="
+	+ coords + "&zoom=16&size=300x300&maptype=roadmap&markers=color:blue%7Clabel:S%7C"
+	+ coords + "&key=AIzaSyA4eaooBciQJVFh82pP-034I6lzzJr2hZU"
+
+    
+    var gmAPI      = new GoogleMapsAPI();
+    var params     = {
+	center:     coords,
+	zoom:       16,
+	size:      '300x300',
+	maptype:   'roadmap',
+	markers:  [{location: coords,
+		    label:    'l',
+		    color:    'red',
+		    shadow:    true}],
+	style:    [{feature: 'road',
+		    element: 'all',
+		    rules:   {hue: '0x00ff00'}}]}
+    return gmAPI.staticMap(params) }
+    
 function map_state_to_props(state) {
     return state }
-
 
 function map_dispatch_to_props(dispatch) {
     var act = 
@@ -58,20 +79,27 @@ class Home extends Component {
 		- new Date(b.created_at || (b.data && b.data.created_at))) }
 
     render_stream(stream) {
+	var img = false
+	if (stream.lngLat) {
+	    img = __('img', {src: get_static_img(stream.lngLat[0],
+						 stream.lngLat[1]),
+			     width: '150px',
+			     height: '150px'}) }
 	return __(
 	    'div', {className: 'tile is-parent is-4'},
 	    __('div', {className: 'tile is-child is-vertical card'},
-	    __('div', {className: 'header'},
-	       __('a', {href: 'https://periscope.tv/' + stream.username},
-		  "@", stream.username)),
-	    __('div', {className: 'card-content'},
-	       __('div', {className: 'content'},
-		  __('div', {dangerouslySetInnerHTML: {__html: stream.oembed && stream.oembed.html}}))),
-	    __('footer', {className: 'card-footer'},
-	       __('div', {className: 'card-footer-item'},
-		  stream.locationDescription || ""),
-	       __('div', {className: 'card-footer-item'},
-		  stream.state || ""))))}
+	       __('div', {className: 'header'},
+		  __('a', {href: 'https://periscope.tv/' + stream.username},
+		     "@", stream.username)),
+	       __('div', {className: 'card-content'},
+		  __('div', {className: 'content'},
+		     __('div', {dangerouslySetInnerHTML: {__html: stream.oembed && stream.oembed.html}}))),
+	       img && img,
+	       __('footer', {className: 'card-footer'},
+		  __('div', {className: 'card-footer-item'},
+		     stream.locationDescription || ""),
+		  __('div', {className: 'card-footer-item'},
+		     stream.state || ""))))}
 
     body() {
 	return __('div', {id: 'body'},
