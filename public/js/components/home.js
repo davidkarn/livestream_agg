@@ -7,7 +7,7 @@ import Component          from 'inferno-component'
 function get_static_img(lat, lon) {
     var coords     = lat.toString() + ',' + lon.toString()
     return "https://maps.googleapis.com/maps/api/staticmap?center="
-	+ coords + "&zoom=16&size=300x300&maptype=roadmap&markers=color:blue%7Clabel:S%7C"
+	+ coords + "&zoom=17&size=300x300&maptype=roadmap&markers=color:blue%7Clabel:S%7C"
 	+ coords + "&key=AIzaSyA4eaooBciQJVFh82pP-034I6lzzJr2hZU"
 
     
@@ -61,7 +61,7 @@ class Home extends Component {
 
     update_search(e) {
 	var query = this.refs.search.value
-	this.props.act.load_streams(query) }
+	this.props.act.load_streams(query, undefined, this.refs.only_live.value) }
 
 
     update_columns(e) {
@@ -99,7 +99,24 @@ class Home extends Component {
 			   __('option', {value: 7}, "7"),
 			   __('option', {value: 8}, "8"),
 			   __('option', {value: 9}, "9"), 
-			  ))))),
+				   ))),
+		  __('div', {className: 'field',
+			     style: 'margin-bottom:0.75em;margin-left:0.5em'},
+		     __('p', {},
+			__('label', {},
+			   __('input', {className: 'field',
+					type: 'checkbox',
+					defaultChecked: true,
+					defaultSelected: true,
+					ref: ref_for(this, 'only_live')}),
+			   'live streams only'))),
+		  __('div', {className: 'field',
+			     style: 'margin-bottom:0.75em;margin-left:0.5em'},
+		     __('p', {},
+			__('button', {className: 'button',
+				      onClick:    this.update_search.bind(this)},
+			   'search')
+		       )))),
 			
 	    __('div', {className: 'nav-right'},
 	       __('div', {className: 'nav-item'},
@@ -136,7 +153,8 @@ class Home extends Component {
 			     width: '150px',
 			     height: '150px'}) }
 	return __(
-	    'div', {className: 'tile is-parent is-3'},
+	    'div', {key: stream.data.id || stream.data.broadcast.data.id,
+		    className: 'tile is-parent is-3'},
 	    __('div', {className: 'tile is-child is-vertical card'},
 	       __('div', {className: 'header'},
 		  __('a', {href: 'https://periscope.tv/' + stream.username},
@@ -177,7 +195,7 @@ class Home extends Component {
     footer() {
 	return __('div', {id: 'body'},
 		  __('a', {href: 'https://github.com/davidkarn/livestream_agg'},
-		     ' https://github.com/davidkarn/livestream_agg'),
+		     ' github'),
 		  '')}	
 	    
     render() {

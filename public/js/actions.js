@@ -8,11 +8,12 @@ export function receive_search(query, location, streams) {
                   streams})}}
 
 
-export function load_streams(query, geo_loc) {
+export function load_streams(query, geo_loc, only_live) {
     return (dispatch, get_state) => {
         http('get',
              "/api/search",
              {query:          query,
+	      only_live:      only_live ? 'yes' : undefined,
               latitude:       geo_loc && geo_loc.latitude || '',
               longitude:      geo_loc && geo_loc.longitude || ''},
              function(response) {

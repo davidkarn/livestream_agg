@@ -60,7 +60,7 @@ var client = new Twitter({
   access_token_secret: 'ajbbl9tsYbpcHcj9rY5v6mSHwzwNIFoVenanSDz1G1Isb'
 });
 
-function search_twitter(term, next) {
+function search_twitter_term(term, next) {
     memoize(mkey('search', term),
 	    (next) => {
 		client.get('search/tweets', {q: term + ' filter:periscope'}, function(error, tweets, response) {
@@ -76,7 +76,7 @@ function caller_with_error(fn) {
     return (err, res) =>
 	fn(res) }
 
-function search_periscope(term, next) {
+function search_periscope_term(term, next) {
     memoize(mkey('search', 'periscope', term),
 	    (next) => {
 		request('https://www.periscope.tv/search?q=' + term, function (error, response, body) {
@@ -86,6 +86,28 @@ function search_periscope(term, next) {
 		    body = JSON.parse(body)
 		    next(null, values(body.BroadcastCache.broadcasts).map((x) => x.broadcast))})},
 	    caller_with_error(next))}
+
+function search_periscope(terms, next) {
+    var terms = terms.split(/\s+/).filter((t) => t != '')
+    console.log('terms', terms)    
+    async.map(terms,
+	      (item, done) => {
+		  search_periscope_term(item, (res) => {
+		      done(null, res) })},
+	      (err, res) => {
+		  next(res.reduce((a, b) => a.concat(b), [])) }) }
+
+function search_twitter(terms, next) {
+    var terms = terms.split(/\s+/).filter((t) => t != '')
+    console.log('terms', terms)
+    async.map(terms,
+	      (item, done) => {
+		  search_twitter_term(item, (res) => {
+		      done(null, res) })},
+	      (err, res) => {
+		  var combined = res.reduce((a, b) => (a.statuses || []).concat(b.statuses || []), [])
+		  console.log(res.length, combined.length)
+		  next({statuses: combined}) }) }
 
 function get_oembed(tweet_id, username, next) {
     memoize(mkey('oembed2', tweet_id, username),
@@ -118,7 +140,7 @@ function get_periscope_from_tweet(tweet, next) {
 		    body = body.replace(/"><div id="PageView(.||[\r\n\t])*/im, '')
 		    body = entities.decode(body)
 		    body = JSON.parse(body)
-		    console.log("datwasthebody")
+
 		    next(null, body) })},
 	    caller_with_error(next))}
 
@@ -164,7 +186,6 @@ function tweets_oembed(tweets, next) {
 			  else {
 			      done(null, item) }})},
 	      (err, results) => {
-		  console.log('gottem', results.length, tweets.length)
 		  next(results) })}
 
 app.get('/api/search', function(req, res){
@@ -177,16 +198,21 @@ app.get('/api/search', function(req, res){
 	periscopes_oembed(periscopes, (results) => {
 	    search_twitter(term, (tweets) => {
 		tweets_oembed(tweets.statuses, (twitter_results) => {
-		    res.json(process_streams(tweets.statuses, periscopes))})})})})})
+		    res.json(process_streams(tweets.statuses, periscopes, req.query.only_live == 'yes'))})})})})})
 
-function process_streams(tweets, periscopes) {
+function process_streams(tweets, periscopes, only_live) {
     var n_tweets = []
     var n_scopes = []
     var used_ids = {}
-    tweets = tweets.filter((t) => t.oembed && t.data
-			   && t.data.broadcast
-			   && !t.data.broadcast.isEnded)
-    periscopes = periscopes.filter((t) => t.oembed && !t.isEnded)
+    if (only_live) {
+	tweets = tweets.filter((t) => t.oembed && t.data
+			       && t.data.broadcast
+			       && !t.data.broadcast.isEnded)
+	periscopes = periscopes.filter((t) => t.oembed && !t.isEnded)}
+    else {
+	tweets = tweets.filter((t) => t.oembed && t.data
+			       && t.data.broadcast)
+	periscopes = periscopes.filter((t) => t.oembed)}
     
     for (var i in tweets) {
 	if (!used_ids[tweets[i].data.broadcast.data.id])
