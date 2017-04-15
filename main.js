@@ -189,14 +189,14 @@ function process_streams(tweets, periscopes) {
     periscopes = periscopes.filter((t) => t.oembed && !t.isEnded)
     
     for (var i in tweets) {
-	if (!used_ids[tweets[i].id_str])
+	if (!used_ids[tweets[i].data.broadcast.data.id])
 	    n_tweets.push(tweets[i])
-	used_ids[tweets[i].id_str] = true }
+	used_ids[tweets[i].data.broadcast.data.id] = true }
     
     for (var i in periscopes) {
-	if (!used_ids[periscopes[i].data.tweet_id])
+	if (!used_ids[periscopes[i].data.id])
 	    n_scopes.push(periscopes[i])
-	used_ids[periscopes[i].data.tweet_id] = true }
+	used_ids[periscopes[i].data.id] = true }
 
     return {tweets: n_tweets, n_scopes}}
 
@@ -204,6 +204,6 @@ app.use(express.static(process.cwd() + '/public/', { setHeaders: function (res, 
     if (path.match('assets'))
         res.setHeader('Cache-Control', 'public, max-age=0')
     else
-        res.setHeader('Cache-Control', process.env.NODE_ENV == 'production' ? 'public, max-age=00' : '')}}))
+        res.setHeader('Cache-Control', process.env.NODE_ENV == 'production' ? 'public, max-age=7200' : '')}}))
 
 server.listen(port);
