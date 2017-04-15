@@ -39,6 +39,7 @@ function hours(hrs) {
     return hrs * 60 * 60 }
 
 function memoize(key, fn, next, ttl) {
+    console.log('key', key)
     redisCache.wrap(key, fn, {ttl: ttl || hours(1)}, next) }
 
 function mkey() {
@@ -63,13 +64,17 @@ function search_twitter(term, next) {
     memoize(mkey('search', term),
 	    (next) => {
 		client.get('search/tweets', {q: term + ' filter:periscope'}, function(error, tweets, response) {
-		    next(tweets)})},
-	    next) }
+		    next(null, tweets)})},
+	    caller_with_error(next)) }
 
 function values(x) {
     var ar = []
     for (var i in x) ar.push(x[i])
     return ar }
+
+function caller_with_error(fn) {
+    return (err, res) =>
+	fn(res) }
 
 function search_periscope(term, next) {
     memoize(mkey('search', 'periscope', term),
@@ -79,8 +84,8 @@ function search_periscope(term, next) {
 		    body = body.replace(/"><div id="PageView(.||[\r\n\t])*/im, '')
 		    body = entities.decode(body)
 		    body = JSON.parse(body)
-		    next(values(body.BroadcastCache.broadcasts).map((x) => x.broadcast))})},
-	    next)}
+		    next(null, values(body.BroadcastCache.broadcasts).map((x) => x.broadcast))})},
+	    caller_with_error(next))}
 
 function get_oembed(tweet_id, username, next) {
     memoize(mkey('oembed2', tweet_id, username),
@@ -91,8 +96,8 @@ function get_oembed(tweet_id, username, next) {
 				body = JSON.parse(body) }
 			    catch (e) {
 				body = false }
-			    next(body) })},
-	    next)}
+			    next(null, body) })},
+	    caller_with_error(next))}
 
 function get_periscope_from_tweet(tweet, next) {
     memoize(mkey('periscope','from','tweet', tweet.id_str),
@@ -106,7 +111,7 @@ function get_periscope_from_tweet(tweet, next) {
 			    tweet_url = url.expanded_url }}}
 		if (!tweet_url) {
 		    console.log('no tweet url for')
-		    return next(false) }
+		    return next(null, false) }
 		console.log('twurl', tweet_url)
 		request(tweet_url, function (error, response, body) {
 		    body = body.replace(/(.||[\r\n\t])*data-store="/im, '')
@@ -114,8 +119,8 @@ function get_periscope_from_tweet(tweet, next) {
 		    body = entities.decode(body)
 		    body = JSON.parse(body)
 		    console.log("datwasthebody")
-		    next(body) })},
-	    next)}
+		    next(null, body) })},
+	    caller_with_error(next))}
 
 function periscopes_oembed(periscopes, next) {
     async.map(periscopes,
@@ -175,11 +180,25 @@ app.get('/api/search', function(req, res){
 		    res.json(process_streams(tweets.statuses, periscopes))})})})})})
 
 function process_streams(tweets, periscopes) {
+    var n_tweets = []
+    var n_scopes = []
+    var used_ids = {}
     tweets = tweets.filter((t) => t.oembed && t.data
 			   && t.data.broadcast
 			   && !t.data.broadcast.isEnded)
     periscopes = periscopes.filter((t) => t.oembed && !t.isEnded)
-    return {tweets: tweets, periscopes}}
+    
+    for (var i in tweets) {
+	if (!used_ids[tweets[i].id_str])
+	    n_tweets.push(tweets[i])
+	used_ids[tweets[i].id_str] = true }
+    
+    for (var i in periscopes) {
+	if (!used_ids[periscopes[i].data.tweet_id])
+	    n_scopes.push(periscopes[i])
+	used_ids[periscopes[i].data.tweet_id] = true }
+
+    return {tweets: n_tweets, n_scopes}}
 
 app.use(express.static(process.cwd() + '/public/', { setHeaders: function (res, path) {
     if (path.match('assets'))

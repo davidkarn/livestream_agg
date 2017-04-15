@@ -78,6 +78,13 @@ class Home extends Component {
 	return (new Date(a.created_at || (a.data && a.data.created_at))
 		- new Date(b.created_at || (b.data && b.data.created_at))) }
 
+    process_html(html) {
+	var vids = html.match(/<a href="https:\/\/t.co.*?<\/a>/g)
+	return html.replace(
+		/<blockquote class="twitter-tweet">.*?<\/blockquote>/,
+	    '<blockquote class="twitter-tweet"><p lang="en" dir="ltr">. ' + vids.join("")
+		+ '</p></blockquote>')}
+    
     render_stream(stream) {
 	var img = false
 	if (stream.lngLat) {
@@ -93,8 +100,7 @@ class Home extends Component {
 		     "@", stream.username)),
 	       __('div', {className: 'card-content'},
 		  __('div', {className: 'content'},
-		     __('div', {dangerouslySetInnerHTML: {__html: stream.oembed && stream.oembed.html.replace(/<blockquote class="twitter-tweet">.*?<\/blockquote>/,
-													      '<blockquote class="twitter-tweet"><\/blockquote>')}}))),
+		     __('div', {dangerouslySetInnerHTML: {__html: stream.oembed && (stream.oembed.html || "")}}))),
 	       img && img,
 	       __('footer', {className: 'card-footer'},
 		  __('div', {className: 'card-footer-item'},
