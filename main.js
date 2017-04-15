@@ -63,7 +63,9 @@ var client = new Twitter({
 function search_twitter_term(term, next) {
     memoize(mkey('search', term),
 	    (next) => {
-		client.get('search/tweets', {q: term + ' filter:periscope'}, function(error, tweets, response) {
+		client.get('search/tweets', {q: term + ' filter:periscope',
+					     count: 100,
+					     result_type: 'recent'}, function(error, tweets, response) {
 		    next(null, tweets)})},
 	    caller_with_error(next)) }
 
