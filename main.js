@@ -189,21 +189,31 @@ function tweets_oembed(tweets, next) {
 		  next(results) })}
 
 app.get('/api/search', function(req, res){
-    var term     = req.query.query
-    search_periscope(term, (periscopes) => {
-	var old_periscopes = periscopes
-	periscopes = periscopes
-	    .filter((x) => x.data && x.data.tweet_id)
-	    .slice(0, 100)
-	periscopes_oembed(periscopes, (results) => {
-	    search_twitter(term, (tweets) => {
-		tweets_oembed(tweets.statuses, (twitter_results) => {
-		    res.json(process_streams(tweets.statuses, periscopes, req.query.only_live == 'yes'))})})})})})
+    var term      = req.query.query
+    var only_live = req.query.only_live == 'yes'
+
+    do_query(res, term, only_live) })
+
+function do_query(res, term, only_live) {
+    memoize(mkey('main','query',term,'live',only_live.toString()),
+	    (next) => {
+		search_periscope(term, (periscopes) => {
+		    var old_periscopes = periscopes
+		    periscopes = periscopes
+			.filter((x) => x.data && x.data.tweet_id)
+			.slice(0, 100)
+		    periscopes_oembed(periscopes, (results) => {
+			search_twitter(term, (tweets) => {
+			    tweets_oembed(tweets.statuses, (twitter_results) => {
+				next(null,
+				     process_streams(tweets.statuses, periscopes, only_live))})})})})},
+	    (err, result) => res.json(result))}
 
 function process_streams(tweets, periscopes, only_live) {
     var n_tweets = []
     var n_scopes = []
     var used_ids = {}
+    console.log('filtering', only_live)
     if (only_live) {
 	tweets = tweets.filter((t) => t.oembed && t.data
 			       && t.data.broadcast
