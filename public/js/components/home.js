@@ -5,7 +5,7 @@ import config             from 'config'
 import Component          from 'inferno-component'
 
 function get_static_img(lat, lon) {
-    var coords     = lon.toString() + ',' + lat.toString()
+    var coords     = lat.toString() + ',' + lon.toString()
     return "https://maps.googleapis.com/maps/api/staticmap?center="
 	+ coords + "&zoom=16&size=300x300&maptype=roadmap&markers=color:blue%7Clabel:S%7C"
 	+ coords + "&key=AIzaSyA4eaooBciQJVFh82pP-034I6lzzJr2hZU"
@@ -28,6 +28,26 @@ function get_static_img(lat, lon) {
     
 function map_state_to_props(state) {
     return state }
+
+function get_coords(tweet) {
+    if (tweet.lngLat) 
+	return [tweet.lngLat[1],
+		tweet.lngLat[0]]
+    if (tweet.ip_lat)
+	return [tweet.ip_lat,
+		tweet.ip_lng]
+    if (tweet.data
+	&& tweet.data.broadcast
+	&& tweet.data.broadcast.data) {
+	var data = tweet.data.broadcast.data
+	if (data.lngLat) 
+	    return [data.lngLat[1],
+		    data.lngLat[0]]
+	if (data.ip_lat)
+	    return [data.ip_lat,
+		    data.ip_lng] }
+    return false }
+
 
 function map_dispatch_to_props(dispatch) {
     var act = 
@@ -109,9 +129,10 @@ class Home extends Component {
     
     render_stream(stream) {
 	var img = false
-	if (stream.lngLat) {
-	    img = __('img', {src: get_static_img(stream.lngLat[0],
-						 stream.lngLat[1]),
+	var coords = get_coords(stream)
+	if (coords) {
+	    img = __('img', {src: get_static_img(coords[0],
+						 coords[1]),
 			     width: '150px',
 			     height: '150px'}) }
 	return __(
