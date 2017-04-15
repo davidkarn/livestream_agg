@@ -234,7 +234,7 @@ function process_streams(tweets, periscopes, only_live) {
 	    n_scopes.push(periscopes[i])
 	used_ids[periscopes[i].data.id] = true }
 
-    return {tweets: n_tweets, n_scopes}}
+    return {tweets: n_tweets, scopes: n_scopes}}
 
 app.use(express.static(process.cwd() + '/public/', { setHeaders: function (res, path) {
     if (path.match('assets'))
