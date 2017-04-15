@@ -63,8 +63,6 @@ function search_twitter(term, next) {
     memoize(mkey('search', term),
 	    (next) => {
 		client.get('search/tweets', {q: term + ' filter:periscope'}, function(error, tweets, response) {
-		    console.log('got tweets', {tweets})
-		    for (var i in tweets) console.log(tweets[i])
 		    next(tweets)})},
 	    next) }
 
@@ -85,7 +83,7 @@ function search_periscope(term, next) {
 	    next)}
 
 function get_oembed(tweet_id, username, next) {
-    memoize(mkey('oembed', tweet_id, username),
+    memoize(mkey('oembed2', tweet_id, username),
 	    (next) => {
 		request('https://publish.twitter.com/oembed?url=https://twitter.com/'
 			+ username + '/status/' + tweet_id, function (error, response, body) {
@@ -96,6 +94,29 @@ function get_oembed(tweet_id, username, next) {
 			    next(body) })},
 	    next)}
 
+function get_periscope_from_tweet(tweet, next) {
+    memoize(mkey('periscope','from','tweet', tweet.id_str),
+	    (next) => {
+		var tweet_url = false
+		if (tweet.entities && tweet.entities.urls && tweet.entities.urls[0]) {
+		    
+		    for (var i in tweet.entities.urls) {
+			var url = tweet.entities.urls[i]
+			if (url.expanded_url && url.expanded_url.match('pscp.tv')) {
+			    tweet_url = url.expanded_url }}}
+		if (!tweet_url) {
+		    console.log('no tweet url for')
+		    return next(false) }
+		console.log('twurl', tweet_url)
+		request(tweet_url, function (error, response, body) {
+		    body = body.replace(/(.||[\r\n\t])*data-store="/im, '')
+		    body = body.replace(/"><div id="PageView(.||[\r\n\t])*/im, '')
+		    body = entities.decode(body)
+		    body = JSON.parse(body)
+		    console.log("datwasthebody")
+		    next(body) })},
+	    next)}
+
 function periscopes_oembed(periscopes, next) {
     async.map(periscopes,
 	      (item, done) => {
@@ -104,28 +125,41 @@ function periscopes_oembed(periscopes, next) {
 				 item.data.twitter_username,
 				 (oembed) => {
 				     item.oembed = oembed
-				     done(item)})
+				     done(null, item)})
 		  else {
-		      done(item) }},
+		      done(null, item) }},
 	      (err, results) => {
 		  next(results) })}
+
+function data_from_scope(scope) {
+    if (!scope
+	|| !scope.BroadcastCache
+	|| !scope.BroadcastCache.broadcasts)
+	return
+    for (var i in scope.BroadcastCache.broadcasts) {
+	var bc = scope.BroadcastCache.broadcasts[i]
+	return bc }
+    return undefined }
 
 function tweets_oembed(tweets, next) {
     async.map(tweets,
 	      (item, done) => {
-		  console.log('item', item)
-		  item.username = item.user.screen_name
-		  item.locationDescription = item.place
-		  if (item && item.id_str)
-		      get_oembed(item.id_str,
-				 item.user.screen_name,
-				 (oembed) => {
-				     console.log('tweet_oembed')
-				     item.oembed = oembed
-				     done(item)})
-		  else {
-		      done(item) }},
+		  get_periscope_from_tweet(
+		      item,
+		      (scope) => {
+			  item.data        = data_from_scope(scope)
+			  item.username    = item.user.screen_name
+			  item.locationDescription = item.place
+			  if (item && item.id_str)
+			      get_oembed(item.id_str,
+					 item.user.screen_name,
+					 (oembed) => {
+					     item.oembed = oembed
+					     done(null, item)})
+			  else {
+			      done(null, item) }})},
 	      (err, results) => {
+		  console.log('gottem', results.length, tweets.length)
 		  next(results) })}
 
 app.get('/api/search', function(req, res){
@@ -141,8 +175,10 @@ app.get('/api/search', function(req, res){
 		    res.json(process_streams(tweets.statuses, periscopes))})})})})})
 
 function process_streams(tweets, periscopes) {
-    tweets = tweets.filter((t) => t.oembed)
-    periscopes = periscopes.filter((t) => t.oembed)
+    tweets = tweets.filter((t) => t.oembed && t.data
+			   && t.data.broadcast
+			   && !t.data.broadcast.isEnded)
+    periscopes = periscopes.filter((t) => t.oembed && !t.isEnded)
     return {tweets: tweets, periscopes}}
 
 app.use(express.static(process.cwd() + '/public/', { setHeaders: function (res, path) {
