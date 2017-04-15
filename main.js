@@ -201,7 +201,6 @@ function do_query(res, term, only_live) {
 		    var old_periscopes = periscopes
 		    periscopes = periscopes
 			.filter((x) => x.data && x.data.tweet_id)
-			.slice(0, 100)
 		    periscopes_oembed(periscopes, (results) => {
 			search_twitter(term, (tweets) => {
 			    tweets_oembed(tweets.statuses, (twitter_results) => {
