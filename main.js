@@ -20,6 +20,32 @@ var app              = express()
 var server           = require('http').Server(app)
 var port             = process.env.PORT || 8080
 
+var cacheManager = require('cache-manager');
+var redisStore = require('cache-manager-redis');
+
+var redisCache = cacheManager.caching({
+	store: redisStore,
+	host: 'ec2-34-204-242-91.compute-1.amazonaws.com', // default value
+	port: 9319, // default value
+	auth_pass: 'p95161335d374a0a9d33222dbb35d37b8570f09ef65b1ae466e4fdf64f01f05da',
+	db: 0,
+	ttl: 3600
+});
+
+function minutes(mins) {
+    return mins * 60 }
+
+function hours(hrs) {
+    return hrs * 60 * 60 }
+
+function memoize(key, fn, next, ttl) {
+    redisCache.wrap(key, fn, {ttl: ttl || hours(1)}, next) }
+
+function mkey() {
+    var id = ''
+    for (var i in arguments)
+	id += arguments[i].toString() + ':'
+    return id }
 
 app.use(cookieParser())
 app.use(bodyParser({ uploadDir: '/tmp' }))
@@ -34,11 +60,13 @@ var client = new Twitter({
 });
 
 function search_twitter(term, next) {
-    client.get('search/tweets', {q: term + ' filter:periscope'}, function(error, tweets, response) {
-	console.log('got tweets', {tweets})
-	for (var i in tweets) console.log(tweets[i])
-	next(tweets)
-    });}
+    memoize(mkey('search', term),
+	    (next) => {
+		client.get('search/tweets', {q: term + ' filter:periscope'}, function(error, tweets, response) {
+		    console.log('got tweets', {tweets})
+		    for (var i in tweets) console.log(tweets[i])
+		    next(tweets)})},
+	    next) }
 
 function values(x) {
     var ar = []
@@ -46,43 +74,76 @@ function values(x) {
     return ar }
 
 function search_periscope(term, next) {
-    request('https://www.periscope.tv/search?q=' + term, function (error, response, body) {
-        body = body.replace(/(.||[\r\n\t])*data-store="/im, '')
-        body = body.replace(/"><div id="PageView(.||[\r\n\t])*/im, '')
-        body = entities.decode(body)
-        body = JSON.parse(body)
-        next(values(body.BroadcastCache.broadcasts).map((x) => x.broadcast))
-    });}
+    memoize(mkey('search', 'periscope', term),
+	    (next) => {
+		request('https://www.periscope.tv/search?q=' + term, function (error, response, body) {
+		    body = body.replace(/(.||[\r\n\t])*data-store="/im, '')
+		    body = body.replace(/"><div id="PageView(.||[\r\n\t])*/im, '')
+		    body = entities.decode(body)
+		    body = JSON.parse(body)
+		    next(values(body.BroadcastCache.broadcasts).map((x) => x.broadcast))})},
+	    next)}
 
 function get_oembed(tweet_id, username, next) {
-    request('https://publish.twitter.com/oembed?url=https://twitter.com/'
-	    + username + '/status/' + tweet_id, function (error, response, body) {
-		try {
-		    body = JSON.parse(body) }
-		catch (e) {
-		    body = false }
-		next(body) })}
+    memoize(mkey('oembed', tweet_id, username),
+	    (next) => {
+		request('https://publish.twitter.com/oembed?url=https://twitter.com/'
+			+ username + '/status/' + tweet_id, function (error, response, body) {
+			    try {
+				body = JSON.parse(body) }
+			    catch (e) {
+				body = false }
+			    next(body) })},
+	    next)}
+
+function periscopes_oembed(periscopes, next) {
+    async.map(periscopes,
+	      (item, done) => {
+		  if (item.data && item.data.tweet_id)
+		      get_oembed(item.data.tweet_id,
+				 item.data.twitter_username,
+				 (oembed) => {
+				     item.oembed = oembed
+				     done(item)})
+		  else {
+		      done(item) }},
+	      (err, results) => {
+		  next(results) })}
+
+function tweets_oembed(tweets, next) {
+    async.map(tweets,
+	      (item, done) => {
+		  console.log('item', item)
+		  item.username = item.user.screen_name
+		  item.locationDescription = item.place
+		  if (item && item.id_str)
+		      get_oembed(item.id_str,
+				 item.user.screen_name,
+				 (oembed) => {
+				     console.log('tweet_oembed')
+				     item.oembed = oembed
+				     done(item)})
+		  else {
+		      done(item) }},
+	      (err, results) => {
+		  next(results) })}
 
 app.get('/api/search', function(req, res){
     var term     = req.query.query
     search_periscope(term, (periscopes) => {
+	var old_periscopes = periscopes
 	periscopes = periscopes
 	    .filter((x) => x.data && x.data.tweet_id)
-	    .slice(0, 50)
-	async.map(periscopes,
-		  (item, done) => {
-		      if (item.data && item.data.tweet_id)
-			  get_oembed(item.data.tweet_id,
-				     item.data.twitter_username,
-				     (oembed) => {
-					 item.oembed = oembed
-					 done(item)})
-		      else {
-			  done(item) }},
-		  (err, results) => {
-		      console.log({err, res: results[0]})
-		      search_twitter(term, (tweets) => {
-			  res.json({tweets, periscopes}) })})})})
+	    .slice(0, 100)
+	periscopes_oembed(periscopes, (results) => {
+	    search_twitter(term, (tweets) => {
+		tweets_oembed(tweets.statuses, (twitter_results) => {
+		    res.json(process_streams(tweets.statuses, periscopes))})})})})})
+
+function process_streams(tweets, periscopes) {
+    tweets = tweets.filter((t) => t.oembed)
+    periscopes = periscopes.filter((t) => t.oembed)
+    return {tweets: tweets, periscopes}}
 
 app.use(express.static(process.cwd() + '/public/', { setHeaders: function (res, path) {
     if (path.match('assets'))

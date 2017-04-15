@@ -43,7 +43,19 @@ class Home extends Component {
 		  __('div', {}, 'test'))))}
 
     streams() {
-	return this.props.streams.streams.periscopes.slice(0, 4) }
+	var streams = ((this.props.streams
+			&& this.props.streams.streams
+			&& this.props.streams.streams.periscopes) || [])
+	    .concat((this.props.streams
+		     && this.props.streams.streams
+		     && this.props.streams.streams.tweets) || [])
+	    .sort(this.sort_streams)
+	    .slice(0, 20)
+	return streams }
+
+    sort_streams(a, b) {
+	return (new Date(a.created_at || (a.data && a.data.created_at))
+		- new Date(b.created_at || (b.data && b.data.created_at))) }
 
     render_stream(stream) {
 	return __(
@@ -54,7 +66,7 @@ class Home extends Component {
 		  "@", stream.username)),
 	    __('div', {className: 'card-content'},
 	       __('div', {className: 'content'},
-		  __('div', {dangerouslySetInnerHTML: {__html: stream.oembed.html}}))),
+		  __('div', {dangerouslySetInnerHTML: {__html: stream.oembed && stream.oembed.html}}))),
 	    __('footer', {className: 'card-footer'},
 	       __('div', {className: 'card-footer-item'},
 		  stream.locationDescription || ""),
@@ -74,7 +86,7 @@ class Home extends Component {
 	for (var i in streams) {
 	    var stream = streams[i]
 	    rendered.push(this.render_stream(stream))
-	    if ((i + 1) % 3 == 0 ) {
+	    if ((i + 1) % 3 == 0) {
 		full.push(__('div', {className: "tile is-ancestor"}, rendered))
 		rendered = [] }}
 	full.push(__('div', {}, rendered))
