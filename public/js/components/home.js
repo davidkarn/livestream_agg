@@ -10,7 +10,6 @@ function get_static_img(lat, lon) {
 	+ coords + "&zoom=17&size=300x300&maptype=roadmap&markers=color:blue%7Clabel:S%7C"
 	+ coords + "&key=AIzaSyA4eaooBciQJVFh82pP-034I6lzzJr2hZU"
 
-    
     var gmAPI      = new GoogleMapsAPI();
     var params     = {
 	center:     coords,
@@ -124,6 +123,13 @@ class Home extends Component {
 				      onClick:    this.update_search.bind(this)},
 			   'search')
 		       )))),
+	    __('div', {className: 'field',
+			     style: 'margin-bottom:0.75em;margin-left:0.5em'},
+	       __('p', {},
+		  this.props.streams.spinning && __('div', {className: "spinner"},
+					    __('div', {className: "bounce1"}),
+					    __('div', {className: "bounce2"}),
+					    __('div', {className: "bounce3"})))),
 			
 	    __('div', {className: 'nav-right'},
 	       __('div', {className: 'nav-item'},
@@ -150,6 +156,15 @@ class Home extends Component {
 		/<blockquote class="twitter-tweet">.*?<\/blockquote>/,
 	    '<blockquote class="twitter-tweet"><p lang="en" dir="ltr">. ' + vids.join("")
 		+ '</p></blockquote>')}
+
+    tweet_offset(oembed) {
+	var html = oembed.replace(
+	    /.*<blockquote class="twitter-tweet"><p lang="en" dir="ltr">(.*?)<\/p>.*/,
+	    '$1')
+	var tester = document.getElementById('tweet-size-tester')
+	tester.innerHTML = html
+	return tester.getBoundingClientRect().height  + 114}
+
     
     render_stream(stream) {
 	var img = false
@@ -170,6 +185,7 @@ class Home extends Component {
 		  __('div', {className: 'content'},
 		     __('div', {className: 'tweet-wrapper'},
 			__('div', {className: 'tweet-inner-wrapper',
+				   style:     "top: " + ((0 - this.tweet_offset(stream.oembed.html)).toString() + 'px!important'),
 				   dangerouslySetInnerHTML: {__html: stream.oembed && (stream.oembed.html || "")}})))),
 	       img && img,
 	       false && __('footer', {className: 'card-footer'},
