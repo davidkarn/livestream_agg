@@ -23,7 +23,7 @@
     position: absolute;
     width: 358px;
     top: -140px;
-    left: -18px;
+    left: -21px;
 }
 
 
@@ -153,3 +153,19 @@
     transform: scale(1.0);
   }
 }
+
+.stream {
+    display: inline-block;
+    vertical-align: top;
+    height: 490px;
+    margin: 8px;
+    width: 314px; }
+.stream .card {
+    height: 487px;
+    display: block; }
+.stream-container {
+    display: block;
+    width: 100%; }
+section.section {
+    padding-left: 16px;
+    padding-right: 16px; }

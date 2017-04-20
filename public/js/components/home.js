@@ -176,8 +176,8 @@ class Home extends Component {
 			     height: '150px'}) }
 	return __(
 	    'div', {key: stream.data.id || stream.data.broadcast.data.id,
-		    className: 'tile is-parent is-3'},
-	    __('div', {className: 'tile is-child is-vertical card'},
+		    className: 'stream'},
+	    __('div', {className: 'card'},
 	       __('div', {className: 'header'},
 		  __('a', {href: 'https://periscope.tv/' + stream.username},
 		     "@", stream.username)),
@@ -197,9 +197,8 @@ class Home extends Component {
     body() {
 	return __('div', {id: 'body'},
 		  __('section', {className: 'section'},
-		     __('div', {className: 'container'},
 			__('div', {className: ''},
-			   this.render_streams(this.streams())))))}
+			   this.render_streams(this.streams()))))}
     
     render_streams(streams) {
 	var rendered = []
@@ -209,10 +208,10 @@ class Home extends Component {
 	    rendered.push(this.render_stream(stream))
 	    var j = Number.parseInt(i) + 1
 	    console.log(i, j, j % 4, i % 4)
-	    if (j % 4 == 0) {
+	    if (j % 4 == 0 && false) {
 		full.push(__('div', {className: "tile is-ancestor"}, rendered))
 		rendered = [] }}
-	full.push(__('div',  {className: "tile is-ancestor"}, rendered))
+	full.push(__('div',  {className: "stream-container"}, rendered))
 	return full }
     
     footer() {
