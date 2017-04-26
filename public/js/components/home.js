@@ -1,8 +1,9 @@
-import {load_streams} from 'actions'
+import {load_streams, receive_document, receive_stream} from 'actions'
 import __                 from 'jsml'
 import InfernoRedux       from 'inferno-redux'
 import config             from 'config'
 import Component          from 'inferno-component'
+
 
 function get_static_img(lat, lon) {
     var coords     = lat.toString() + ',' + lon.toString()
@@ -50,19 +51,36 @@ function get_coords(tweet) {
 
 function map_dispatch_to_props(dispatch) {
     var act = 
-        {load_streams:        (term, geoloc)  => dispatch(load_streams(term, geoloc))}
+        {load_streams:      (term, geoloc)  => dispatch(load_streams(term, geoloc)),
+	 receive_document:  (document)      => dispatch(receive_document(document)),
+	 receive_stream:    (stream)        => dispatch(receive_stream(stream))}
     return {act}}
 
 class Home extends Component {
     constructor(...args) {
         super(...args)
-        var me = this }
+        var me = this
+
+	this.socket = io();
+	this.socket.on('receive_stream', (data) => {
+	    console.log('receive_stream', data)
+	    this.props.act.receive_stream(data) })
+	this.socket.on('receive_document', (data) => {
+	    this.props.act.receive_document(data) })
+
+	this.create_document() }
+
+    create_document() {
+	var id = [(new Date() - 1).toString(),
+		  Math.random().toString().slice(2)].join(':')
+
+	this.socket.emit('init_document', { id: 'id' }); }
 
     update_search(e) {
 	var query = this.refs.search.value
-	this.props.act.load_streams(query, undefined, this.refs.only_live.value) }
+	this.props.act.load_streams(this.socket, query, undefined, this.refs.only_live.value) }
 
-    perform_serach(term) {
+    perform_search(term) {
 	this.refs.search.value = term
 	this.update_search() }
 
@@ -93,8 +111,7 @@ class Home extends Component {
 				     placeholder:   "Search terms"}),
 			false && __('select', {className:     "select input ",
 				      ref:            ref_for(this, "columns"),
-				      onChange:       this.update_columns.bind(this),
-				     },
+				      onChange:       this.update_columns.bind(this)},
 			   __('option', {value: 3}, "Columns #"),
 			   __('option', {value: 1}, "1"),
 			   __('option', {value: 2}, "2"),
@@ -136,14 +153,10 @@ class Home extends Component {
 		  __('div', {dangerouslySetInnerHTML: {__html: "&nbsp;"}}, ''))))}
 
     streams() {
-	var streams = ((this.props.streams
-			&& this.props.streams.streams
-			&& this.props.streams.streams.periscopes) || [])
-	    .concat((this.props.streams
-		     && this.props.streams.streams
-		     && this.props.streams.streams.tweets) || [])
+	var streams = (this.props.streams
+		       && this.props.streams.streams || [])
 	    .sort(this.sort_streams)
-	    .slice(0, 20)
+	    .slice(0, 40)
 	return streams }
 
     sort_streams(a, b) {
@@ -157,7 +170,9 @@ class Home extends Component {
 	    '<blockquote class="twitter-tweet"><p lang="en" dir="ltr">. ' + vids.join("")
 		+ '</p></blockquote>')}
 
-    tweet_offset(oembed) {
+    tweet_offset(oembed, stream) {
+	if (!oembed)
+	    console.log('no ombed', stream)
 	var html = oembed.replace(
 	    /.*<blockquote class="twitter-tweet"><p lang="en" dir="ltr">(.*?)<\/p>.*/,
 	    '$1')
@@ -185,7 +200,7 @@ class Home extends Component {
 		  __('div', {className: 'content'},
 		     __('div', {className: 'tweet-wrapper'},
 			__('div', {className: 'tweet-inner-wrapper',
-				   style:     "top: " + ((0 - this.tweet_offset(stream.oembed.html)).toString() + 'px!important'),
+				   style:     "top: " + ((0 - this.tweet_offset(stream.oembed.html, stream)).toString() + 'px!important'),
 				   dangerouslySetInnerHTML: {__html: stream.oembed && (stream.oembed.html || "")}})))),
 	       img && img,
 	       false && __('footer', {className: 'card-footer'},

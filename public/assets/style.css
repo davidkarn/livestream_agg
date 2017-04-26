@@ -156,6 +156,7 @@
 
 .stream {
     display: inline-block;
+    text-align: left;
     vertical-align: top;
     height: 490px;
     margin: 8px;
@@ -164,6 +165,7 @@
     height: 487px;
     display: block; }
 .stream-container {
+    text-align:center;
     display: block;
     width: 100%; }
 section.section {
