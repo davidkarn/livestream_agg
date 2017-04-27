@@ -148,7 +148,7 @@ class Home extends Component {
 		     __('p', {},
 			__('button', {className: 'button',
 				      onClick:    this.update_search.bind(this)},
-			   'search')
+			   'search / reload')
 		       )))),
 	    __('div', {className: 'field',
 			     style: 'margin-bottom:0.75em;margin-left:0.5em'},
