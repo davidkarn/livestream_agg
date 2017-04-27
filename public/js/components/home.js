@@ -169,7 +169,7 @@ class Home extends Component {
 	    .filter((stream) => !this.state.only_live
 		    ? true
 		    : this.is_live(stream))
-	    .slice(0, 40)
+	    .slice(0, 20)
 	return streams }
 
     sort_streams(a, b) {
