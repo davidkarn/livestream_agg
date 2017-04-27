@@ -220,14 +220,14 @@ function do_query(socket, document, term, only_live) {
 
 function push_stream(stream, document, search_term, socket, only_live, is_tweet) {
 
-    if (only_live && is_tweet) 
+/*    if (only_live && is_tweet) 
 	if (!stream.oembed || !stream.oembed.html|| !stream.data
 	    || !stream.data.broadcast
 	    || stream.data.broadcast.isEnded)
 	    return
     if (only_live && !is_tweet)
 	if (!stream.oembed || stream.isEnded || !stream.oembed.html)
-	    return
+	    return*/
 
     if (is_tweet && (!stream.oembed
 		     || !stream.data
@@ -242,8 +242,16 @@ function push_stream(stream, document, search_term, socket, only_live, is_tweet)
 	stream.stream_id = stream.data.id
 
     stream.document_id = document ? document.id : 0
+
+    redis.set(mkey('stream', is_tweet, stream.stream_id),
+	      stream)
+    redis.sadd(key_doc_streams(document),
+	       mkey('stream', is_tweet, stream.stream_id))
     console.log('pushing', stream.stream_id)
     socket.emit('receive_stream', stream) }
+
+function key_doc_streams(document) {
+    return mkey('streams_for', 'document', document && document.id)}
 
 function process_streams(tweets, periscopes, only_live) {
     var n_tweets = []
@@ -284,7 +292,7 @@ io.on('connection', function (socket) {
     socket.on('init_document', function (data) {
 	var id        = 'document-' + data.id
 	document      = {id:               id,
-			 searches:        [],
+			 searches:        "",
 			 searched_vids:   [],
 			 added_vids:      []}
 
@@ -293,7 +301,22 @@ io.on('connection', function (socket) {
 	socket.emit('receive_document', document)
     });
 
+    socket.on('get_document', function (data) {
+	var id        = 'document-' + data.id
+	redis.get(id, (err, result) => {
+	    if (!result) return
+	    document = result
+	    socket.emit('receive_document', document)
+	    redis.get(key_doc_streams(document), (err, result) => {
+		if (!result) return
+		for (var i in result)
+		    redis.get(result[i], (err, stream) => {
+			console.log('got stream', err, !stream)
+			stream && socket.emit('receive_stream', result[i])})})})})
+
     socket.on('search', (data) => {
+	document.searches = data.query
+	redis.set(document.id, document)
 	do_query(socket, document, data.query, data.only_live == 'yes')})})
 
 server.listen(port);

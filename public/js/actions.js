@@ -30,8 +30,9 @@ export function load_streams(socket, query, geo_loc, only_live) {
     return (dispatch, get_state) => {
 	set_spinning(true)(dispatch, get_state)
 	setTimeout(() => { // FIX THIS SHIT!
+	    console.log("REMOVING THE SPINNER")
 	    set_spinning(false)(dispatch, get_state) },
-		   40000)
+		   30000)
 	socket.emit('search',
 		    {query:          query,
 		     only_live:      only_live ? 'yes' : undefined,

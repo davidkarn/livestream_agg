@@ -172,7 +172,7 @@ class Home extends Component {
 
     tweet_offset(oembed, stream) {
 	if (!oembed)
-	    console.log('no ombed', stream)
+	    return console.log('no ombed', stream)
 	var html = oembed.replace(
 	    /.*<blockquote class="twitter-tweet"><p lang="en" dir="ltr">(.*?)<\/p>.*/,
 	    '$1')
@@ -222,7 +222,7 @@ class Home extends Component {
 	    var stream = streams[i]
 	    rendered.push(this.render_stream(stream))
 	    var j = Number.parseInt(i) + 1
-	    console.log(i, j, j % 4, i % 4)
+
 	    if (j % 4 == 0 && false) {
 		full.push(__('div', {className: "tile is-ancestor"}, rendered))
 		rendered = [] }}
