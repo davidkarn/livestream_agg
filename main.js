@@ -48,8 +48,19 @@ function hours(hrs) {
     return hrs * 60 * 60 }
 
 function memoize(key, fn, next, ttl) {
-    console.log('key', key)
-    redisCache.wrap('-' + key, fn, {ttl: minutes(5) || ttl || hours(1)}, next) }
+    ttl = ttl || minutes(10)
+    key = mkey("memoize", key)
+    redis.get(key, (err, result) => {
+	if (!err && result) {
+	    var res = s_o(result)
+	    if (new Date() - res.time < ttl)
+		return next(null, res.value) }
+	fn((err, result) => {
+	    redis.set(key, o_s({time: new Date() - 1,
+				value: result}))
+	    next(null, result)})})}
+//    console.log('key', key)
+//    redisCache.wrap('-' + key, fn, {ttl: minutes(5) || ttl || hours(1)}, next) }
 
 function mkey() {
     var id = ''
@@ -286,19 +297,21 @@ app.use(express.static(process.cwd() + '/public/', { setHeaders: function (res, 
     else
         res.setHeader('Cache-Control', process.env.NODE_ENV == 'production' ? 'public, max-age=7200' : '')}}))
 
+function o_s(o) { return JSON.stringify(o) }
+function s_o(s) { return JSON.parse(s) }
 
 io.on('connection', function (socket) {
     var document
     socket.emit('connect', {})
     socket.on('init_document', function (data) {
-	var id        = 'document-' + data.id
+	var id        = 'document:' + data.id
 	document      = {id:               id,
 			 searches:        "",
 			 searched_vids:   [],
 			 added_vids:      []}
 
 	redis.sadd('documents', id)
-	redis.set(id, document)
+	redis.set(id, o_s(document))
 	socket.emit('receive_document', document)
     });
 
@@ -307,20 +320,21 @@ io.on('connection', function (socket) {
 	console.log('getting', id)
 	redis.get(id, (err, result) => {
 	    if (!result) return
-	    document = result
+	    document = s_o(result)
 	    console.log('got', {document, err, result})
 	    console.log(JSON.stringify(document))
 	    socket.emit('receive_document', document)
 	    redis.get(key_doc_streams(document), (err, result) => {
 		if (!result) return
+		result = s_o(result)
 		for (var i in result)
 		    redis.get(result[i], (err, stream) => {
 			console.log('got stream', err, !stream)
-			stream && socket.emit('receive_stream', result[i])})})})})
+			stream && socket.emit('receive_stream', s_o(stream))})})})})
 
     socket.on('search', (data) => {
 	document.searches = data.query
-	redis.set(document.id, document)
+	redis.set(document.id, o_s(document))
 	do_query(socket, document, data.query, data.only_live == 'yes')})})
 
 server.listen(port);
