@@ -289,6 +289,7 @@ app.use(express.static(process.cwd() + '/public/', { setHeaders: function (res, 
 
 io.on('connection', function (socket) {
     var document
+    socket.emit('connect', {})
     socket.on('init_document', function (data) {
 	var id        = 'document-' + data.id
 	document      = {id:               id,
@@ -302,10 +303,13 @@ io.on('connection', function (socket) {
     });
 
     socket.on('get_document', function (data) {
-	var id        = 'document-' + data.id
+	var id        = data.id
+	console.log('getting', id)
 	redis.get(id, (err, result) => {
 	    if (!result) return
 	    document = result
+	    console.log('got', {document, err, result})
+	    console.log(JSON.stringify(document))
 	    socket.emit('receive_document', document)
 	    redis.get(key_doc_streams(document), (err, result) => {
 		if (!result) return

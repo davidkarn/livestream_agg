@@ -7,6 +7,8 @@ function streams(state = {loaded: {},
     switch (action.type) {
 
     case RECEIVE_DOCUMENT:
+	if (action.document)
+	    window.location.hash = action.document.id
         return Object.assign({},
 			     state,
 			     {document: action.document})

@@ -61,20 +61,25 @@ class Home extends Component {
         super(...args)
         var me = this
 
+	this.state  = {only_live: false}
 	this.socket = io();
-	this.socket.on('receive_stream', (data) => {
-	    console.log('receive_stream', data)
-	    this.props.act.receive_stream(data) })
-	this.socket.on('receive_document', (data) => {
-	    this.props.act.receive_document(data) })
-
-	this.create_document() }
+	this.socket.on('connect', () => {
+	    this.socket.on('receive_stream', (data) => {
+		console.log('receive_stream', data)
+		this.props.act.receive_stream(data) })
+	    this.socket.on('receive_document', (data) => {
+		this.props.act.receive_document(data) })
+	    console.log('constructing')
+	    if (window.location.hash) 
+		this.load_document(window.location.hash.slice(1))
+	    else 
+		this.create_document() })}
 
     create_document() {
 	var id = [(new Date() - 1).toString(),
 		  Math.random().toString().slice(2)].join(':')
-
-	this.socket.emit('init_document', { id: 'id' }); }
+	console.log('creating')
+	this.socket.emit('init_document', { id: id }); }
 
     update_search(e) {
 	var query = this.refs.search.value
@@ -88,6 +93,9 @@ class Home extends Component {
 	if (query_parameter('term'))
 	    this.perform_serach(query_parameter('term')) }
 
+    load_document(id) {
+	this.socket.emit('get_document', {id: id})}
+    
     update_columns(e) {
 	var val = Number.parseInt(this.refs.columns.value)
 	console.log('new val', val, this.refs.columns.value, this.refs.columns)
@@ -129,8 +137,10 @@ class Home extends Component {
 			__('label', {},
 			   __('input', {className: 'field',
 					type: 'checkbox',
-					defaultChecked: true,
-					defaultSelected: true,
+					selected:  this.state.only_live,
+					value:     this.state.only_live,
+					onChange: () => {
+					    this.setState({only_live: !this.state.only_live})},
 					ref: ref_for(this, 'only_live')}),
 			   'live streams only'))),
 		  __('div', {className: 'field',
@@ -156,6 +166,9 @@ class Home extends Component {
 	var streams = (this.props.streams
 		       && this.props.streams.streams || [])
 	    .sort(this.sort_streams)
+	    .filter((stream) => !this.state.only_live
+		    ? true
+		    : this.is_live(stream))
 	    .slice(0, 40)
 	return streams }
 
@@ -180,6 +193,16 @@ class Home extends Component {
 	tester.innerHTML = html
 	return tester.getBoundingClientRect().height  + 114}
 
+
+    is_live(stream) {
+	if (stream.data
+	    && stream.data.broadcast 
+ 	    && stream.data.broadcast.isEnded)
+	    return false
+	if (stream.isEnded
+	    || (stream.data && stream.data.isEnded))
+	    return false
+	return true }
     
     render_stream(stream) {
 	var img = false
