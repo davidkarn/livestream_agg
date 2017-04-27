@@ -91,7 +91,7 @@ class Home extends Component {
 
     componentDidMount() {
 	if (query_parameter('term'))
-	    this.perform_serach(query_parameter('term')) }
+	    this.perform_search(query_parameter('term')) }
 
     load_document(id) {
 	this.socket.emit('get_document', {id: id})}
@@ -165,7 +165,7 @@ class Home extends Component {
     streams() {
 	var streams = (this.props.streams
 		       && this.props.streams.streams || [])
-	    .sort(this.sort_streams)
+	    .sort(this.sort_streams.bind(this))
 	    .filter((stream) => !this.state.only_live
 		    ? true
 		    : this.is_live(stream))
@@ -173,8 +173,8 @@ class Home extends Component {
 	return streams }
 
     sort_streams(a, b) {
-	return (new Date(a.created_at || (a.data && a.data.created_at))
-		- new Date(b.created_at || (b.data && b.data.created_at))) }
+	return ((this.is_live(a) ? new Date() - 1 : 0) + (new Date(a.created_at || (a.data && a.data.created_at)))
+		- ((this.is_live(b) ? new Date() - 1 : 0) + new Date(b.created_at || (b.data && b.data.created_at)))) }
 
     process_html(html) {
 	var vids = html.match(/<a href="https:\/\/t.co.*?<\/a>/g)

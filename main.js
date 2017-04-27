@@ -65,7 +65,7 @@ function memoize(key, fn, next, ttl) {
 function mkey() {
     var id = ''
     for (var i in arguments)
-	id += arguments[i].toString() + ':'
+	id += (arguments[i] || "").toString() + ':'
     return id }
 
 app.use(cookieParser())
@@ -333,8 +333,9 @@ io.on('connection', function (socket) {
 			stream && socket.emit('receive_stream', s_o(stream))})})})})
 
     socket.on('search', (data) => {
-	document.searches = data.query
-	redis.set(document.id, o_s(document))
+	if (document && document.id) {
+	    document.searches = data.query
+	    redis.set(document.id, o_s(document)) }
 	do_query(socket, document, data.query, data.only_live == 'yes')})})
 
 server.listen(port);

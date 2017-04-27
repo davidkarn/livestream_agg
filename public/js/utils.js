@@ -556,7 +556,7 @@ function is_empty_object(o) {
 
 function query_parameters() {
     var params = {};
-    var s = window.location.href.split('?');
+    var s = window.location.href.replace(/\#.*?$/, '').split('?');
     if (!s[1]) return {};
 
     var lines = s[1].split('&');
